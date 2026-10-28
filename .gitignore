@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.venv/
+venv/
+# Never commit live Qloo responses
+cache/
+qloo_responses/

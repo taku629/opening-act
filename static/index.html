@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening Act — taste-graph booking agent</title>
+  <meta name="description" content="Plan a show around a headliner: audience-overlap openers, where fans live, venues and sponsors — powered by the Qloo taste graph.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23ff4d2e'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>OA</text></svg>">
+</head>
+<body>
+  <div id="demo-banner" class="demo-banner" hidden>
+    <strong>Demo data.</strong> No Qloo API key is configured, so every number below is synthetic (generated to match Qloo's documented response shapes). Names of openers, venues and brands are invented.
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="logo">OA</span>
+      <span class="brand-text">Opening Act</span>
+    </a>
+    <div class="status" id="status-pills"></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">For independent promoters &amp; small-venue bookers</p>
+        <h1>Book the opener the crowd <em>already</em> loves.</h1>
+        <p class="lede">Give Opening Act a headliner and a city. An agent walks the Qloo taste graph and returns a booking brief:
+          audience-overlap openers, who the crowd is, which neighborhoods to flyer, venues that fit, and sponsors with real affinity — then drafts the pitch.</p>
+      </div>
+
+      <form id="brief-form" class="brief-form" autocomplete="off">
+        <div class="field grow">
+          <label for="headliner">Headliner</label>
+          <input id="headliner" name="headliner" required maxlength="80" placeholder="e.g. Japanese Breakfast" value="Japanese Breakfast">
+        </div>
+        <div class="field grow">
+          <label for="city">City</label>
+          <input id="city" name="city" required maxlength="60" placeholder="e.g. Chicago" value="Chicago">
+        </div>
+        <div class="field small">
+          <label for="capacity">Capacity <span class="opt">optional</span></label>
+          <input id="capacity" name="capacity" type="number" min="20" max="100000" placeholder="400" value="400">
+        </div>
+        <div class="field small">
+          <label for="show_date">Show date <span class="opt">optional</span></label>
+          <input id="show_date" name="show_date" type="date">
+        </div>
+        <button class="btn primary" id="go" type="submit">Build booking brief</button>
+        <div class="examples">
+          <span>Try:</span>
+          <button type="button" class="chip" data-h="Phoebe Bridgers" data-c="Los Angeles">Phoebe Bridgers · Los Angeles</button>
+          <button type="button" class="chip" data-h="Khruangbin" data-c="Austin">Khruangbin · Austin</button>
+          <button type="button" class="chip" data-h="Fontaines D.C." data-c="London">Fontaines D.C. · London</button>
+          <button type="button" class="chip" data-h="Mitski" data-c="New York">Mitski · New York</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <aside class="trace-col">
+        <div class="panel trace">
+          <div class="panel-head">
+            <h2>Agent trace</h2>
+            <span id="trace-meta" class="muted small"></span>
+          </div>
+          <ol id="steps" class="steps"></ol>
+          <div id="thoughts" class="thoughts"></div>
+        </div>
+      </aside>
+
+      <div class="results-col">
+        <div id="headliner-card" class="panel headliner-card" hidden></div>
+
+        <div class="grid">
+          <article class="panel card wide" id="card-openers" hidden>
+            <div class="card-head">
+              <h3>Opener candidates</h3>
+              <span class="src">/v2/insights · urn:entity:artist · /v2/trending</span>
+            </div>
+            <p class="card-sub">Ranked by shared-audience affinity, discounted for acts as big as the headliner. Pick one to re-pitch.</p>
+            <div id="openers"></div>
+          </article>
+
+          <article class="panel card" id="card-audience" hidden>
+            <div class="card-head"><h3>Who the crowd is</h3><span class="src">urn:demographics</span></div>
+            <div id="audience"></div>
+          </article>
+
+          <article class="panel card" id="card-heat" hidden>
+            <div class="card-head"><h3>Where fans live</h3><span class="src">urn:heatmap</span></div>
+            <div id="heat"></div>
+          </article>
+
+          <article class="panel card" id="card-venues" hidden>
+            <div class="card-head"><h3>Venues that fit</h3><span class="src">/v2/tags → urn:entity:place</span></div>
+            <div id="venues"></div>
+          </article>
+
+          <article class="panel card" id="card-brands" hidden>
+            <div class="card-head"><h3>Sponsor &amp; partner brands</h3><span class="src">urn:entity:brand</span></div>
+            <div id="brands"></div>
+          </article>
+
+          <article class="panel card wide" id="card-overlap" hidden>
+            <div class="card-head"><h3 id="overlap-title">Why this opener fits</h3><span class="src">/v2/analysis/compare · urn:tag</span></div>
+            <div id="overlap"></div>
+          </article>
+
+          <article class="panel card wide pitch-card" id="card-pitch" hidden>
+            <div class="card-head">
+              <h3>Booking pitch</h3>
+              <span id="pitch-src" class="src"></span>
+            </div>
+            <div id="pitch" class="pitch md"></div>
+            <div class="actions">
+              <button class="btn" id="copy-pitch" type="button">Copy pitch</button>
+              <a class="btn" id="dl-md" href="#" download>Download brief (.md)</a>
+              <button class="btn" id="print" type="button">Print / PDF</button>
+            </div>
+          </article>
+
+          <article class="panel card wide compare-card" id="card-compare" hidden>
+            <div class="card-head"><h3>Without Qloo vs. with Qloo</h3><span class="src">same question, two answers</span></div>
+            <div class="compare">
+              <div class="side without">
+                <h4>LLM alone</h4>
+                <div id="llm-alone" class="md"></div>
+              </div>
+              <div class="side with">
+                <h4>Opening Act + Qloo</h4>
+                <ul id="with-qloo"></ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel card wide notes-card" id="card-notes" hidden>
+            <div class="card-head"><h3>Notes &amp; limits</h3></div>
+            <ul id="notes"></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how">
+      <div class="how-grid">
+        <div>
+          <h3>Why this needs a taste graph</h3>
+          <p>An LLM can name artists in a genre. It cannot tell you which ones <em>share an audience</em> with your headliner, which neighborhoods that audience lives in, or which brands they over-index on. Those are measurements, and they come from Qloo.</p>
+        </div>
+        <div>
+          <h3>What the agent does</h3>
+          <p>A tool-calling loop plans 8 steps over Qloo's Search, Insights (artist, demographics, heatmap, place, brand, tag), Tags, Trending and Analysis endpoints. Every call is shown in the trace with its parameters and result count.</p>
+        </div>
+        <div>
+          <h3>Responsible by design</h3>
+          <p>Only artist and city names are sent to Qloo — no personal data. Affinities describe aggregate audiences, not individuals. Responses are cached privately on the server.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Opening Act · built for the Qloo Agentic Hackathon · taste data by <a href="https://www.qloo.com" target="_blank" rel="noopener">Qloo</a></span>
+    <a href="https://github.com/taku629/opening-act" target="_blank" rel="noopener">Source (MIT)</a>
+  </footer>
+
+  <template id="tpl-step">
+    <li class="step"><div class="step-row"><span class="dot"></span><span class="step-title"></span><span class="step-ep"></span></div><div class="calls"></div></li>
+  </template>
+  <script src="static/app.js"></script>
+</body>
+</html>
