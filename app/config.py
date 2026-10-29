@@ -42,7 +42,10 @@ class Settings:
     llm_model: str = field(
         default_factory=lambda: os.getenv("LLM_MODEL", "Qwen/Qwen3-235B-A22B-Instruct-2507").strip()
     )
-    llm_timeout_s: float = field(default_factory=lambda: float(os.getenv("LLM_TIMEOUT_S", "45") or 45))
+    llm_timeout_s: float = field(default_factory=lambda: float(os.getenv("LLM_TIMEOUT_S", "20") or 20))
+    # Hard wall-clock budgets so a slow LLM never stalls the demo; deterministic/template fallbacks take over.
+    llm_planner_budget_s: float = field(default_factory=lambda: float(os.getenv("LLM_PLANNER_BUDGET_S", "45") or 45))
+    llm_pitch_budget_s: float = field(default_factory=lambda: float(os.getenv("LLM_PITCH_BUDGET_S", "25") or 25))
     llm_disabled: bool = field(default_factory=lambda: _bool("LLM_DISABLED", False))
 
     rate_limit_per_hour: int = field(default_factory=lambda: _int("RATE_LIMIT_PER_HOUR", 30))

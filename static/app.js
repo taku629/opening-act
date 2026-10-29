@@ -308,7 +308,7 @@
 
   function renderCompare(b) {
     $("#card-compare").hidden = false;
-    const alone = b.llm_alone || "**Plausible names, no evidence.** A language model on its own can list artists in a similar genre, but it can't measure whether their fans overlap, can't tell who is rising this month, doesn't know which neighborhoods the crowd lives in, and can't rank brands by audience affinity. It would also confidently suggest acts far too big to open.\n\n_(Configure LLM_API_KEY to see a live model answer here.)_";
+    const alone = b.llm_alone || "**Plausible names, no evidence.** A language model on its own can list artists in a similar genre, but it can't measure whether their fans overlap, can't tell who is rising this month, doesn't know which neighborhoods the crowd lives in, and can't rank brands by audience affinity. It would also confidently suggest acts far too big to open.\n\n_(Generic answer shown; the live model comparison was unavailable for this run.)_";
     $("#llm-alone").innerHTML = md(alone);
     const o = b.selected_opener || {}, m0 = (b.momentum || {})[o.id] || {}, m = m0.label === "no data" ? {} : m0, hm = b.heatmap || {}, d = b.demographics || {};
     const items = [

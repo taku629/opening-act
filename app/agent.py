@@ -91,7 +91,7 @@ class Agent:
             return None
         from openai import AsyncOpenAI
         return AsyncOpenAI(base_url=self.s.llm_base_url, api_key=self.s.llm_api_key, timeout=self.s.llm_timeout_s,
-                           max_retries=1)
+                           max_retries=0)
 
     def _remember(self, run: Run):
         self.runs[run.id] = run
@@ -182,7 +182,11 @@ class Agent:
         if client is not None:
             st.planner = f"llm:{self.s.llm_model}"
             try:
-                await self._llm_loop(tb, emit, client)
+                await asyncio.wait_for(self._llm_loop(tb, emit, client), timeout=self.s.llm_planner_budget_s)
+            except asyncio.TimeoutError:
+                st.notes.append(f"LLM planner exceeded its {self.s.llm_planner_budget_s:.0f}s budget; deterministic planner finished the remaining steps.")
+                await emit({"type": "agent_thought", "text": "LLM planner is slow right now - deterministic planner is finishing the remaining steps."})
+                st.planner += " → deterministic"
             except Exception as e:  # LLM outage, bad tool-call support, timeouts ...
                 st.notes.append(f"LLM planner failed ({type(e).__name__}); deterministic planner finished the run.")
                 await emit({"type": "agent_thought", "text": "LLM planner unavailable - switching to deterministic planner."})
@@ -201,8 +205,9 @@ class Agent:
         st = run.state
         client = client if client is not None else self._llm()
         await emit({"type": "step_start", "step": "pitch", "title": "Write booking pitch"})
-        pitch_task = write_pitch(client, self.s.llm_model, st, run.recommendation)
-        alone_task = llm_alone_answer(client, self.s.llm_model, st)
+        b = self.s.llm_pitch_budget_s
+        pitch_task = asyncio.wait_for(write_pitch(client, self.s.llm_model, st, run.recommendation), timeout=b)
+        alone_task = asyncio.wait_for(llm_alone_answer(client, self.s.llm_model, st), timeout=b)
         pitch, alone = await asyncio.gather(pitch_task, alone_task, return_exceptions=True)
         if isinstance(pitch, Exception) or not pitch:
             st.pitch_md, st.pitch_source = template_pitch(st), "template"
