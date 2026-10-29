@@ -188,7 +188,7 @@
     const sel = state.selectedId || (state.brief && state.brief.selected_opener && state.brief.selected_opener.id) || (rows[0] && rows[0].id);
     $("#openers").innerHTML = `<table class="op-table"><thead><tr><th>Artist</th><th>Audience affinity</th><th class="hide-sm">Popularity</th><th>Tier</th><th class="hide-sm">12-wk momentum</th><th></th></tr></thead><tbody>` +
       rows.slice(0, 8).map((o) => {
-        const m = mom[o.id] || {};
+        const m = (mom[o.id] && mom[o.id].label !== "no data") ? mom[o.id] : {};
         const momHtml = m.label ? `<span class="mom ${esc(m.label)}">${spark(m.series)}${esc(m.label)}${m.delta_12w != null ? ` ${m.delta_12w > 0 ? "+" : ""}${m.delta_12w}` : ""}</span>` : `<span class="muted small">—</span>`;
         return `<tr class="${o.id === sel ? "selected" : ""}"><td><div class="op-name">${esc(o.name)}</div><div class="op-tags">${esc((o.tags || []).join(" · "))}</div></td>
         <td><div class="bar accent"><i style="width:${(o.affinity || 0) * 100}%"></i></div><span class="num">${pct(o.affinity)}</span></td>
@@ -302,7 +302,7 @@
     $("#card-compare").hidden = false;
     const alone = b.llm_alone || "**Plausible names, no evidence.** A language model on its own can list artists in a similar genre, but it can't measure whether their fans overlap, can't tell who is rising this month, doesn't know which neighborhoods the crowd lives in, and can't rank brands by audience affinity. It would also confidently suggest acts far too big to open.\n\n_(Configure LLM_API_KEY to see a live model answer here.)_";
     $("#llm-alone").innerHTML = md(alone);
-    const o = b.selected_opener || {}, m = (b.momentum || {})[o.id] || {}, hm = b.heatmap || {}, d = b.demographics || {};
+    const o = b.selected_opener || {}, m0 = (b.momentum || {})[o.id] || {}, m = m0.label === "no data" ? {} : m0, hm = b.heatmap || {}, d = b.demographics || {};
     const items = [
       o.name && `<strong>${esc(o.name)}</strong>: ${pct(o.affinity)} audience affinity, ${esc(o.tier)} (popularity ${pct(o.popularity)} vs ${pct((b.headliner || {}).popularity)})`,
       m.label && `Momentum: <strong>${esc(m.label)}</strong> (${m.delta_12w > 0 ? "+" : ""}${m.delta_12w} pts in 12 weeks)`,

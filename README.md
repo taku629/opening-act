@@ -4,7 +4,7 @@
 
 Give it a headliner and a city. An agent walks the [Qloo](https://www.qloo.com) taste graph in a visible, multi-step tool-calling loop and returns a one-page **booking brief**:
 
-- **Openers whose fans already overlap with the headliner's**, biased toward emerging acts, with affinity scores and 12-week momentum
+- **Openers whose fans already overlap with the headliner's**, biased toward emerging acts, with affinity scores (and 12-week momentum where Qloo has trend data)
 - **Who the crowd is**: age and gender affinity of the headliner's audience
 - **Where the crowd lives**: neighborhoods ranked by audience heat, for street teams, posters and geo-targeted ads
 - **Venues** whose patrons share the headliner's taste
@@ -15,6 +15,8 @@ Give it a headliner and a city. An agent walks the [Qloo](https://www.qloo.com) 
 Swap the opener or change the city and the brief is rebuilt.
 
 > Built for the Qloo Agentic Hackathon. MIT licensed.
+>
+> **Live demo: https://opening-act.onrender.com** runs on the real Qloo hackathon API and a Nebius-hosted Qwen3 planner. Try *Phoebe Bridgers / Los Angeles* (it finds her longtime collaborator Christian Lee Hutson as the top opener) or *Mitski / Tokyo*. The free instance sleeps when idle, so the first request can take ~30 s.
 
 ---
 
