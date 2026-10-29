@@ -65,6 +65,13 @@ def _affinity(e: dict) -> float | None:
     return _num(q.get("affinity"), _num(q.get("affinity_score")))
 
 
+_NON_MUSIC = ("comedy", "comedian", "stand-up", "podcast")
+
+# Qloo place-category tags that reliably mean "you can book a show here" (verified on the live API).
+_VENUE_TAGS = ("urn:tag:category:place:live_music_venue", "urn:tag:category:place:concert_hall",
+               "urn:tag:setting:qloo:music_venue", "urn:tag:category:place:night_club")
+
+
 def _tags(e: dict, limit: int = 4) -> list[str]:
     out = []
     for t in e.get("tags") or []:
@@ -161,6 +168,9 @@ class Toolbox:
         body = await self.insights_with_location("openers", params, "signal.location.query", city)
         rows = []
         for e in _entities(body):
+            all_tags = " ".join(str(t.get("name", "")).lower() for t in (e.get("tags") or []) if isinstance(t, dict))
+            if any(w in all_tags for w in _NON_MUSIC):
+                continue  # Qloo's artist type also holds comedians/podcasters; a promoter wants a band
             aff = _affinity(e) or 0.0
             pop = _num(e.get("popularity"), 0.0)
             growth = _num(((e.get("query") or {}).get("measurements") or {}).get("audience_growth"))
@@ -207,6 +217,8 @@ class Toolbox:
         body = await self.call("heatmap", "/v2/insights", params)
         rows = ((body.get("results") or {}).get("heatmap")) or []
         loc_meta = (((body.get("query") or {}).get("localities") or {}).get("filter")) or {}
+        if isinstance(loc_meta, list):
+            loc_meta = loc_meta[0] if loc_meta and isinstance(loc_meta[0], dict) else {}
         points, groups = [], {}
         for r in rows:
             loc, q = r.get("location") or {}, r.get("query") or {}
@@ -221,6 +233,13 @@ class Toolbox:
             points.append({"lat": lat, "lng": lng, "affinity": aff, "popularity": _num(q.get("popularity")),
                            "label": label})
             groups.setdefault(label, []).append(aff)
+        # The live API returns the whole city grid (1000+ cells); only the hottest cells say where the
+        # core fans live, so neighbourhoods are ranked on the top ~10% of cells.
+        if len(points) > 120:
+            hot = sorted(points, key=lambda p: -p["affinity"])[:max(60, len(points) // 10)]
+            groups = {}
+            for p in hot:
+                groups.setdefault(p["label"], []).append(p["affinity"])
         total = sum(sum(v) for v in groups.values()) or 1.0
         # "Heat" = summed affinity of the grid cells in an area: rewards dense clusters of fans,
         # not a single hot cell. share = that area's slice of all audience heat in the city.
@@ -236,8 +255,10 @@ class Toolbox:
         h = self.need_headliner()
         city = city or self.st.inputs["city"]
         capacity = capacity if capacity is not None else self.st.inputs.get("capacity")
-        tag_ids: list[str] = []
-        for q in ("music venue", "bar"):
+        tag_ids: list[str] = list(_VENUE_TAGS)
+        for t in _VENUE_TAGS:
+            self.st.venue_tags.append({"id": t, "name": t.rsplit(":", 1)[-1].replace("_", " ").title()})
+        for q in ("music venue",):
             body = await self.call("venues", "/v2/tags", {"filter.query": q, "take": 5})
             for t in ((body.get("results") or {}).get("tags")) or []:
                 tid = t.get("id") or t.get("tag_id")
@@ -246,10 +267,10 @@ class Toolbox:
                     if tid not in tag_ids:
                         tag_ids.append(tid)
                         self.st.venue_tags.append({"id": tid, "name": t.get("name")})
-            if len(tag_ids) >= 3:
+            if len(tag_ids) >= 6:
                 break
         params = {"filter.type": "urn:entity:place", "signal.interests.entities": h["id"], "take": 12,
-                  "filter.tags": ",".join(tag_ids[:4]) if tag_ids else None, "operator.filter.tags": "union"}
+                  "filter.tags": ",".join(tag_ids[:6]) if tag_ids else None, "operator.filter.tags": "union"}
         if capacity and capacity <= 500:
             # Qloo has no capacity field; popularity percentile is used as a soft size proxy.
             params["filter.popularity.max"] = 0.9 if capacity <= 250 else 0.96
@@ -328,7 +349,8 @@ class Toolbox:
         tag_sets = []
         for eid in (h["id"], opener["id"]):
             body = await self.call("overlap", "/v2/insights",
-                                   {"filter.type": "urn:tag", "signal.interests.entities": eid, "take": 20})
+                                   {"filter.type": "urn:tag", "filter.tag.types": "urn:tag:genre:music",
+                                    "signal.interests.entities": eid, "take": 40})
             tags = {}
             for t in ((body.get("results") or {}).get("tags")) or []:
                 tid = t.get("tag_id") or t.get("id")
@@ -358,5 +380,8 @@ def _parse_compare(body: dict) -> list[dict]:
         q = t.get("query") or {}
         a = _num((q.get("a") or {}).get("affinity")) if isinstance(q.get("a"), dict) else None
         b = _num((q.get("b") or {}).get("affinity")) if isinstance(q.get("b"), dict) else None
-        out.append({"name": t["name"], "a": a, "b": b, "score": _num(q.get("affinity"), _num(t.get("popularity")))})
+        score = _num(q.get("score"), _num(q.get("affinity"), _num(t.get("popularity"))))
+        if score is not None and score <= 0:
+            continue
+        out.append({"name": t["name"], "a": a, "b": b, "score": score})
     return out
