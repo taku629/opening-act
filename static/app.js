@@ -229,7 +229,7 @@
         (() => { // nudge labels apart vertically so they never overlap
           const ls = Object.values(labels).map((p) => ({ t: p.label, x: Math.min(W - 80, x(p.lng) + 8), y: y(p.lat) })).sort((m, n) => m.y - n.y);
           ls.forEach((l, i) => { l.y = Math.max(14, l.y); if (i && l.y - ls[i - 1].y < 14) l.y = ls[i - 1].y + 14; });
-          return ls.map((l) => `<text x="${l.x.toFixed(1)}" y="${Math.min(H - 4, l.y).toFixed(1)}" font-size="11" font-family="Inter" font-weight="600" fill="#16130f" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(l.t)}</text>`).join("");
+          return ls.map((l) => `<text x="${l.x.toFixed(1)}" y="${Math.min(H - 4, l.y).toFixed(1)}" font-size="12" font-family="Inter" font-weight="700" fill="#16130f" paint-order="stroke" stroke="#fff" stroke-width="4" stroke-linejoin="round">${esc(l.t)}</text>`).join("");
         })() + `</svg>`;
     }
     const maxShare = Math.max(0.01, ...(h.neighborhoods || []).map((n) => n.share || 0));
@@ -241,7 +241,7 @@
   function renderVenues(rows) {
     $("#card-venues").hidden = false;
     $("#venues").innerHTML = rows.length ? `<ul class="list">` + rows.slice(0, 6).map((v) =>
-      `<li><div><div class="t">${esc(v.name)}</div><div class="s">${esc([v.neighborhood, (v.tags || [])[0], v.rating ? "★ " + v.rating : null].filter(Boolean).join(" · "))}</div></div>
+      `<li><div><div class="t">${esc(v.name)}</div><div class="s">${esc([v.neighborhood, (v.tags || [])[0], v.rating ? "★ " + Number(v.rating).toFixed(1) : null].filter(Boolean).join(" · "))}</div></div>
       <div class="bar blue"><i style="width:${(v.affinity || 0) * 100}%"></i></div><span class="num">${pct(v.affinity)}</span></li>`).join("") + `</ul>
       <div class="callout">Taste match between each venue's patrons and the headliner's audience. Qloo has no capacity field; popularity is used as a soft size filter.</div>`
       : `<p class="muted">No venues matched.</p>`;
