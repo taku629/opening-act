@@ -211,7 +211,9 @@
 
   function renderHeat(h) {
     $("#card-heat").hidden = false;
-    const pts = h.points || [];
+    const all = h.points || [];
+    // Live Qloo returns the whole city grid; plot the hottest cells so the fan core fills the frame.
+    const pts = all.length > 300 ? all.slice().sort((p, q) => q.affinity - p.affinity).slice(0, 300) : all;
     let svg = "";
     if (pts.length) {
       const lats = pts.map((p) => p.lat), lngs = pts.map((p) => p.lng);
@@ -224,7 +226,11 @@
       pts.forEach((p) => { if (top.has(p.label) && (!labels[p.label] || p.affinity > labels[p.label].affinity)) labels[p.label] = p; });
       svg = `<svg class="heatmap-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">` +
         pts.slice().sort((p, q) => p.affinity - q.affinity).map((p) => `<circle cx="${x(p.lng).toFixed(1)}" cy="${y(p.lat).toFixed(1)}" r="${3 + p.affinity * 6}" fill="rgba(255,77,46,${0.12 + p.affinity * 0.6})"/>`).join("") +
-        Object.values(labels).map((p) => `<text x="${Math.min(W - 70, x(p.lng) + 8).toFixed(1)}" y="${y(p.lat).toFixed(1)}" font-size="11" font-family="Inter" font-weight="600" fill="#16130f">${esc(p.label)}</text>`).join("") + `</svg>`;
+        (() => { // nudge labels apart vertically so they never overlap
+          const ls = Object.values(labels).map((p) => ({ t: p.label, x: Math.min(W - 80, x(p.lng) + 8), y: y(p.lat) })).sort((m, n) => m.y - n.y);
+          ls.forEach((l, i) => { l.y = Math.max(14, l.y); if (i && l.y - ls[i - 1].y < 14) l.y = ls[i - 1].y + 14; });
+          return ls.map((l) => `<text x="${l.x.toFixed(1)}" y="${Math.min(H - 4, l.y).toFixed(1)}" font-size="11" font-family="Inter" font-weight="600" fill="#16130f" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(l.t)}</text>`).join("");
+        })() + `</svg>`;
     }
     const maxShare = Math.max(0.01, ...(h.neighborhoods || []).map((n) => n.share || 0));
     $("#heat").innerHTML = `<div class="heat-wrap">${svg}<div>` + (h.neighborhoods || []).map((n, i) =>
