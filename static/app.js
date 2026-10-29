@@ -186,14 +186,16 @@
     $("#card-openers").hidden = false;
     const mom = state.momentum || (state.brief && state.brief.momentum) || {};
     const sel = state.selectedId || (state.brief && state.brief.selected_opener && state.brief.selected_opener.id) || (rows[0] && rows[0].id);
-    $("#openers").innerHTML = `<table class="op-table"><thead><tr><th>Artist</th><th>Audience affinity</th><th class="hide-sm">Popularity</th><th>Tier</th><th class="hide-sm">12-wk momentum</th><th></th></tr></thead><tbody>` +
+    // Show the momentum column only when Qloo /v2/trending actually returned a series for some opener.
+    const hasMom = rows.slice(0, 8).some((o) => mom[o.id] && mom[o.id].label && mom[o.id].label !== "no data");
+    $("#openers").innerHTML = `<table class="op-table"><thead><tr><th>Artist</th><th>Audience affinity</th><th class="hide-sm">Popularity</th><th>Tier</th>${hasMom ? `<th class="hide-sm">12-wk momentum</th>` : ""}<th></th></tr></thead><tbody>` +
       rows.slice(0, 8).map((o) => {
         const m = (mom[o.id] && mom[o.id].label !== "no data") ? mom[o.id] : {};
         const momHtml = m.label ? `<span class="mom ${esc(m.label)}">${spark(m.series)}${esc(m.label)}${m.delta_12w != null ? ` ${m.delta_12w > 0 ? "+" : ""}${m.delta_12w}` : ""}</span>` : `<span class="muted small">—</span>`;
         return `<tr class="${o.id === sel ? "selected" : ""}"><td><div class="op-name">${esc(o.name)}</div><div class="op-tags">${esc((o.tags || []).join(" · "))}</div></td>
         <td><div class="bar accent"><i style="width:${(o.affinity || 0) * 100}%"></i></div><span class="num">${pct(o.affinity)}</span></td>
         <td class="hide-sm"><div class="bar"><i style="width:${(o.popularity || 0) * 100}%"></i></div><span class="num">${pct(o.popularity)}</span></td>
-        <td><span class="tier ${esc(o.tier)}">${esc(o.tier)}</span></td><td class="hide-sm">${momHtml}</td>
+        <td><span class="tier ${esc(o.tier)}">${esc(o.tier)}</span></td>${hasMom ? `<td class="hide-sm">${momHtml}</td>` : ""}
         <td>${o.id === sel ? `<span class="small muted">pitched</span>` : `<button class="btn tiny" data-swap="${esc(o.id)}" ${state.busy ? "disabled" : ""}>Pitch this act</button>`}</td></tr>`;
       }).join("") + `</tbody></table>`;
     document.querySelectorAll("[data-swap]").forEach((b) => b.addEventListener("click", () => swap(b.dataset.swap)));
