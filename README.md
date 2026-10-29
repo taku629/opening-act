@@ -17,6 +17,8 @@ Swap the opener or change the city and the brief is rebuilt.
 > Built for the Qloo Agentic Hackathon. MIT licensed.
 >
 > **Live demo: https://opening-act.onrender.com** runs on the real Qloo hackathon API and a Nebius-hosted Qwen3 planner. Try *Phoebe Bridgers / Los Angeles* (it finds her longtime collaborator Christian Lee Hutson as the top opener) or *Mitski / Tokyo*. The free instance sleeps when idle, so the first request can take ~30 s.
+>
+> **Demo video (70 s):** [docs/opening-act-demo.mp4](docs/opening-act-demo.mp4) — a live run for *Fontaines D.C. / London*, 13 Qloo calls in about 30 seconds.
 
 ---
 
