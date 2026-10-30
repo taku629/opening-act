@@ -37,6 +37,11 @@
     resetWorkspace();
     if (state.replay) replay(); else stream(`api/brief/stream?${p}`);
   });
+  // Instant replay of a recorded LIVE run (real Qloo API + LLM), for when the free-tier server is waking up.
+  $("#instant").addEventListener("click", () => {
+    if (state.busy) return;
+    resetWorkspace(); replay("static/live-trace.json", true);
+  });
 
   function resetWorkspace() {
     state.runId = null; state.brief = null; state.stepEls = {}; state.names = {}; state.selectedId = null; state.momentum = null; state.lastOpeners = null;
@@ -76,10 +81,10 @@
     } finally { setBusy(false); }
   }
 
-  async function replay() {
-    setBusy(true);
+  async function replay(file = "static/live-trace.json", instant = false) {
+    setBusy(true); state.replaying = true;
     try {
-      const evs = await (await fetch("static/demo-trace.json")).json();
+      const evs = await (await fetch(file)).json();
       const first = evs.find((e) => e.type === "run_start");
       if (first) { $("#headliner").value = first.inputs.headliner; $("#city").value = first.inputs.city; $("#capacity").value = first.inputs.capacity || ""; }
       for (const ev of evs) {
@@ -87,8 +92,9 @@
         await new Promise((r) => setTimeout(r, ev.type === "qloo_call" ? 160 : 60));
       }
       $("#dl-md").removeAttribute("href");
+      if (instant) $("#trace-meta").textContent += " · recorded live run (replay)";
     } catch (e) { showError("Replay unavailable: " + e.message); }
-    finally { setBusy(false); }
+    finally { setBusy(false); state.replaying = false; }
   }
 
   function setBusy(b) {
@@ -327,7 +333,7 @@
     state.selectedId = openerId;
     $("#card-pitch").scrollIntoView({ behavior: "smooth", block: "center" });
     $("#pitch").innerHTML = `<div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>`;
-    if (state.replay) { toast("Swapping openers needs the live backend"); return; }
+    if (state.replay || state.replaying) { toast("Swapping openers needs a live run — click Build booking brief"); return; }
     await stream(`api/runs/${state.runId}/swap/stream?opener_id=${encodeURIComponent(openerId)}`);
   }
 

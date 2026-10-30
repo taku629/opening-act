@@ -210,3 +210,6 @@ input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(22, 19, 15, .
   .card { margin-bottom: 12px; animation: none; }
   #demo-banner:not([hidden]) + * .brand-text::after { content: " — DEMO DATA"; }
 }
+
+.instant-row { margin: 8px 0 0; }
+.chip.instant { border-style: solid; color: var(--ink); }
